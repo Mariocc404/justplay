@@ -1,479 +1,248 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日课计划 · 优雅编辑</title>
-    <!-- 字体 & 图标库 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>可拖拽旋转的3D地球仪 - Three.js</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(145deg, #f2f5fa 0%, #e9eef4 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            line-height: 1.5;
-            color: #1e293b;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
         }
-
-        /* 主卡片 — 柔和玻璃感 */
-        .plan-card {
-            max-width: 1100px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-radius: 2.5rem;
-            padding: 2.5rem 2.2rem;
-            box-shadow: 0 30px 55px -20px rgba(30, 35, 48, 0.2),
-                        0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            transition: all 0.2s ease;
-        }
-
-        /* 头部区域 */
-        .plan-header {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-        }
-
-        .title-section {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .title-section i {
-            font-size: 2.2rem;
-            color: #4f46e5;
-            background: #e0e7ff;
-            padding: 0.65rem;
-            border-radius: 1.5rem;
-            box-shadow: 0 6px 12px -8px #4f46e5;
-        }
-
-        .title-section h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #2d3b5e, #4f46e5);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .date-badge {
-            background: #ffffffcc;
-            backdrop-filter: blur(4px);
-            padding: 0.6rem 1.5rem;
-            border-radius: 40px;
-            font-weight: 500;
-            font-size: 1.1rem;
-            color: #2d3b5e;
-            box-shadow: 0 4px 10px -6px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.7);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .date-badge i {
-            color: #4f46e5;
-            font-size: 1rem;
-        }
-
-        /* 灵感便签 — 可编辑区域 */
-        .focus-note {
-            background: #f8fafd;
-            border-radius: 2rem;
-            padding: 1.2rem 1.8rem;
-            margin-bottom: 2.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            border: 1px solid #ffffff;
-            box-shadow: 0 10px 18px -12px rgba(60, 70, 100, 0.2);
-        }
-
-        .focus-note i {
-            font-size: 1.8rem;
-            color: #4f46e5;
-            background: white;
-            border-radius: 50%;
-            padding: 0.5rem;
-            box-shadow: 0 4px 8px -4px #b9c2d9;
-        }
-
-        .editable-motto {
-            flex: 1;
-            font-size: 1.2rem;
-            font-weight: 430;
-            color: #1e2b3f;
-            background: transparent;
-            border: none;
-            outline: none;
-            padding: 0.2rem 0;
-            border-bottom: 2px dashed #cbd5e1;
-            transition: border 0.15s;
-        }
-
-        .editable-motto:focus {
-            border-bottom-color: #4f46e5;
-        }
-
-        .editable-motto[contenteditable="true"]:empty:before {
-            content: "写下一个最重要的目标...";
-            color: #94a3b8;
-            font-style: italic;
-            font-weight: 350;
-        }
-
-        /* 表格容器 (水平滚动小屏适应) */
-        .table-wrapper {
-            border-radius: 1.8rem;
-            overflow-x: auto;
-            margin-bottom: 2rem;
-            background: rgba(255,255,255,0.4);
-            padding: 0.2rem 0;
-        }
-
-        /* 计划表格 */
-        .plan-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-            font-size: 1rem;
-        }
-
-        .plan-table th {
-            text-align: left;
-            padding: 1.2rem 1rem 1rem 1rem;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            color: #64748b;
-            background: transparent;
-            border-bottom: 2px solid #d9e2ef;
-        }
-
-        .plan-table td {
-            padding: 1rem 1rem;
-            border-bottom: 1px solid #e6edf5;
-            vertical-align: middle;
-            background: rgba(255,255,255,0.3);
-            transition: background 0.2s;
-        }
-
-        .plan-table tbody tr:hover td {
-            background: #f1f5f9;
-        }
-
-        /* 可编辑单元格样式 */
-        .plan-table td[contenteditable="true"] {
-            outline: none;
-            border-radius: 12px;
-            transition: background 0.15s, box-shadow 0.15s;
-        }
-
-        .plan-table td[contenteditable="true"]:focus {
-            background: white;
-            box-shadow: 0 0 0 3px #c7d2fe;
-        }
-
-        /* 时间列宽度偏好 */
-        .plan-table th:first-child,
-        .plan-table td:first-child {
-            width: 16%;
-            font-weight: 500;
-        }
-
-        .plan-table th:nth-child(2),
-        .plan-table td:nth-child(2) {
-            width: 52%;
-        }
-
-        .plan-table th:nth-child(3),
-        .plan-table td:nth-child(3) {
-            width: 12%;
-            text-align: center;
-        }
-
-        .plan-table th:nth-child(4),
-        .plan-table td:nth-child(4) {
-            width: 20%;
-            text-align: center;
-        }
-
-        /* 复选框样式 (accent-color 保持现代) */
-        .plan-table input[type="checkbox"] {
-            width: 1.3rem;
-            height: 1.3rem;
-            accent-color: #4f46e5;
-            cursor: pointer;
-            transform: scale(1);
-            transition: transform 0.1s;
-        }
-
-        .plan-table input[type="checkbox"]:hover {
-            transform: scale(1.1);
-        }
-
-        /* 删除图标按钮 */
-        .delete-task {
-            color: #94a3b8;
-            font-size: 1.3rem;
-            cursor: pointer;
-            transition: all 0.15s;
-            padding: 0.3rem 0.6rem;
-            border-radius: 2rem;
-            background: transparent;
-        }
-
-        .delete-task:hover {
-            color: #ef4444;
-            background: #fee2e2;
-            transform: scale(1.05);
-        }
-
-        /* 底部按钮区 */
-        .action-bar {
-            display: flex;
-            justify-content: flex-start;
-            gap: 1.2rem;
-            flex-wrap: wrap;
-            margin-top: 1.5rem;
-        }
-
-        .btn-add {
-            background: white;
-            border: 1px solid #d9e2ef;
-            color: #1e293b;
-            font-weight: 600;
-            padding: 0.9rem 2rem;
-            border-radius: 50px;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.7rem;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 4px 12px -8px #a0afc0;
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 16px;
+            border-radius: 30px;
+            pointer-events: none;
+            font-size: 14px;
             backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
         }
-
-        .btn-add i {
-            color: #4f46e5;
-            font-size: 1.1rem;
-            transition: transform 0.2s;
+        #info a {
+            color: #aaccff;
+            pointer-events: auto;
+            text-decoration: none;
         }
-
-        .btn-add:hover {
-            background: #ffffff;
-            border-color: #4f46e5;
-            box-shadow: 0 12px 22px -12px #4f46e5;
-            transform: translateY(-2px);
-        }
-
-        .btn-add:hover i {
-            transform: rotate(90deg);
-        }
-
-        .footnote {
-            margin-left: auto;
-            color: #94a3b8;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .footnote i {
-            font-size: 0.8rem;
-        }
-
-        /* 占位提示 */
-        [contenteditable="true"]:empty:before {
-            content: "⸻";
-            color: #b9c7da;
-            font-weight: 300;
-        }
-
-        /* 响应式 */
-        @media (max-width: 600px) {
-            .plan-card {
-                padding: 1.8rem 1.2rem;
-            }
-            .title-section h1 {
-                font-size: 1.8rem;
-            }
-            .date-badge {
-                font-size: 1rem;
-                padding: 0.4rem 1rem;
-            }
-            .focus-note {
-                padding: 1rem 1.2rem;
-            }
-            .editable-motto {
-                font-size: 1rem;
-            }
+        #info a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <div class="plan-card">
-        <!-- 头部：标题 + 动态日期 -->
-        <div class="plan-header">
-            <div class="title-section">
-                <i class="fa-regular fa-calendar-check"></i>
-                <h1>日课计划</h1>
-            </div>
-            <div class="date-badge" id="todayDate">
-                <i class="fa-regular fa-calendar"></i>
-                <!-- 日期由js填充 -->
-            </div>
-        </div>
+    <div id="info">🌍 鼠标拖拽旋转 | 滚轮缩放 | 星空背景 | <a href="#" target="_blank">GitHub</a></div>
 
-        <!-- 可编辑的灵感便签 (自由编辑) -->
-        <div class="focus-note">
-            <i class="fa-regular fa-star"></i>
-            <div class="editable-motto" contenteditable="true" role="textbox" aria-multiline="false"></div>
-        </div>
-
-        <!-- 表格区域 (带水平滚动) -->
-        <div class="table-wrapper">
-            <table class="plan-table" id="planTable">
-                <thead>
-                    <tr>
-                        <th>时间</th>
-                        <th>任务描述</th>
-                        <th>完成</th>
-                        <th>管理</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <!-- 预设行 (示范 + 可编辑) -->
-                    <tr>
-                        <td contenteditable="true">08:30</td>
-                        <td contenteditable="true">晨间冥想 & 拉伸</td>
-                        <td style="text-align: center;"><input type="checkbox"></td>
-                        <td style="text-align: center;"><i class="fa-regular fa-trash-can delete-task"></i></td>
-                    </tr>
-                    <tr>
-                        <td contenteditable="true">09:15</td>
-                        <td contenteditable="true">深度工作 · 核心项目推进</td>
-                        <td style="text-align: center;"><input type="checkbox"></td>
-                        <td style="text-align: center;"><i class="fa-regular fa-trash-can delete-task"></i></td>
-                    </tr>
-                    <tr>
-                        <td contenteditable="true">12:00</td>
-                        <td contenteditable="true">午餐 & 恢复精力</td>
-                        <td style="text-align: center;"><input type="checkbox"></td>
-                        <td style="text-align: center;"><i class="fa-regular fa-trash-can delete-task"></i></td>
-                    </tr>
-                    <tr>
-                        <td contenteditable="true">15:30</td>
-                        <td contenteditable="true">团队协作 / 设计评审</td>
-                        <td style="text-align: center;"><input type="checkbox"></td>
-                        <td style="text-align: center;"><i class="fa-regular fa-trash-can delete-task"></i></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 操作栏：添加事项 + 小提示 -->
-        <div class="action-bar">
-            <button class="btn-add" id="addRowBtn">
-                <i class="fa-solid fa-plus"></i> 添加一项
-            </button>
-            <div class="footnote">
-                <i class="fa-regular fa-pen-to-square"></i> 点击单元格直接编辑
-            </div>
-        </div>
-    </div>
-
-    <script>
-        (function() {
-            // ---------- 显示今日日期 ----------
-            const dateEl = document.getElementById('todayDate');
-            if (dateEl) {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-                const weekday = weekdays[now.getDay()];
-                dateEl.innerHTML = `<i class="fa-regular fa-calendar"></i> ${year}.${month}.${day} ${weekday}`;
+    <!-- 引入 Three.js 核心库和轨道控制器 (使用 CDN) -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
             }
-
-            // ---------- 表格行操作：添加 / 删除 (事件委托) ----------
-            const tbody = document.getElementById('tableBody');
-            const addBtn = document.getElementById('addRowBtn');
-
-            // 删除功能 (委托)
-            tbody.addEventListener('click', (e) => {
-                // 点击垃圾桶图标 (i.fa-trash-can) 或点击了它的父级
-                const deleteIcon = e.target.closest('.delete-task');
-                if (!deleteIcon) return;
-
-                const tr = deleteIcon.closest('tr');
-                if (tr && tr.parentNode === tbody) {
-                    // 可以选择性确认，但为了流畅不弹窗
-                    tr.remove();
-                }
-            });
-
-            // 添加新行
-            addBtn.addEventListener('click', () => {
-                const newRow = document.createElement('tr');
-
-                // 时间单元格 (可编辑)
-                const tdTime = document.createElement('td');
-                tdTime.setAttribute('contenteditable', 'true');
-                tdTime.innerText = '';      // 留空，由用户输入
-                // 任务单元格 (可编辑)
-                const tdTask = document.createElement('td');
-                tdTask.setAttribute('contenteditable', 'true');
-                tdTask.innerText = '';
-                // 完成单元格 (复选框)
-                const tdCheck = document.createElement('td');
-                tdCheck.style.textAlign = 'center';
-                const checkInput = document.createElement('input');
-                checkInput.type = 'checkbox';
-                tdCheck.appendChild(checkInput);
-                // 管理单元格 (删除图标)
-                const tdManage = document.createElement('td');
-                tdManage.style.textAlign = 'center';
-                const deleteIcon = document.createElement('i');
-                deleteIcon.className = 'fa-regular fa-trash-can delete-task';
-                tdManage.appendChild(deleteIcon);
-
-                newRow.appendChild(tdTime);
-                newRow.appendChild(tdTask);
-                newRow.appendChild(tdCheck);
-                newRow.appendChild(tdManage);
-
-                tbody.appendChild(newRow);
-                // 可选：让新行的时间单元格获得焦点
-                tdTime.focus();
-            });
-
-            // 额外的优化：按回车在contenteditable中不会添加新行，但默认会插入div。保持自然。
-            // 也可以阻止回车产生新块，但保留灵活。无妨。
-        })();
+        }
     </script>
+
+    <script type="module">
+        // 使用 ES module 方式导入，更现代且可靠
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- 初始化场景、相机、渲染器 ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510); // 深空底色
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 3.5); // 初始相机距离
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 限制最高2倍像素比以保证性能
+        document.body.appendChild(renderer.domElement);
+
+        // --- 轨道控制器: 允许拖拽旋转、缩放 ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;      // 启用惯性效果
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 0.8;
+        controls.zoomSpeed = 1.2;
+        controls.enablePan = false;        // 禁用平移，保持地球在中心
+        controls.minDistance = 2.0;
+        controls.maxDistance = 8.0;
+        controls.autoRotate = false;       // 不自动旋转，完全交由用户控制
+        controls.enableZoom = true;
+        controls.target.set(0, 0, 0);
+
+        // --- 光照设置 (为了让地球有立体感) ---
+        // 环境光提供基础照明
+        const ambientLight = new THREE.AmbientLight(0x404060); // 暗紫色环境光，让暗部不那么死黑
+        scene.add(ambientLight);
+
+        // 主光源 - 方向光模拟太阳
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(5, 3, 5);
+        scene.add(dirLight);
+
+        // 辅助背光，照亮地球暗部
+        const backLight = new THREE.DirectionalLight(0xccddff, 0.5);
+        backLight.position.set(-5, -1, -3);
+        scene.add(backLight);
+
+        // 可选：一个小点光源从侧面补充
+        const fillLight = new THREE.PointLight(0x88aaff, 0.3);
+        fillLight.position.set(2, 1, 3);
+        scene.add(fillLight);
+
+        // --- 创建地球 (使用高质量纹理) ---
+        const earthGeometry = new THREE.SphereGeometry(1, 64, 64); // 半径1，分段数64保证圆滑
+
+        // 加载纹理
+        const textureLoader = new THREE.TextureLoader();
+        
+        // 使用 Three.js 官方示例图片 (高分辨率地球纹理)
+        const earthMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+        const earthNormalMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_normal_2048.jpg');
+        const earthSpecularMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_specular_2048.jpg');
+        // 云层纹理 (可选，为了效果更佳，但这里不使用额外球体，保持简洁)
+        // const cloudMap = textureLoader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
+
+        // 材质: 使用 Phong 材质配合贴图，让地球有真实的反光和凹凸感
+        const earthMaterial = new THREE.MeshPhongMaterial({
+            map: earthMap,
+            normalMap: earthNormalMap,      // 法线贴图增加地形凹凸感
+            specularMap: earthSpecularMap,  // 高光贴图控制海洋反光区域
+            specular: new THREE.Color(0x333333), // 高光颜色设为灰，配合贴图
+            shininess: 15,                  // 光泽度
+            emissive: new THREE.Color(0x000000) // 无自发光
+        });
+
+        const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+        earth.rotation.y = 0.2; // 稍微旋转一个角度，让初始视图好看
+        earth.rotation.x = 0.1; // 轻微倾斜增加真实感 (地轴倾斜约23.5度，但这里简单示意)
+        scene.add(earth);
+
+        // --- 添加星空背景 (粒子系统) 让场景更丰富 ---
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 3000; // 星星数量
+        
+        const positions = new Float32Array(starsCount * 3);
+        const colors = new Float32Array(starsCount * 3); // 可选颜色数组
+
+        for (let i = 0; i < starsCount; i++) {
+            // 使用球面均匀分布，半径在 150 到 250 之间随机，让星星有远近层次感
+            const radius = 150 + Math.random() * 100; 
+            
+            // 随机生成球面坐标
+            const theta = Math.random() * Math.PI * 2;   // 经度
+            const phi = Math.acos((Math.random() * 2) - 1); // 纬度，确保均匀分布
+            
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.sin(phi) * Math.sin(theta);
+            const z = radius * Math.cos(phi);
+            
+            positions[i * 3] = x;
+            positions[i * 3 + 1] = y;
+            positions[i * 3 + 2] = z;
+            
+            // 星星颜色：大部分为白色，略带随机蓝色或黄色倾向
+            const colorVal = 0.8 + Math.random() * 0.4; // 亮度范围 0.8~1.2
+            let r = colorVal;
+            let g = colorVal;
+            let b = colorVal;
+            
+            // 随机给一点色调变化
+            if (Math.random() > 0.7) {
+                // 偏蓝
+                r *= 0.9;
+                g *= 0.95;
+                b *= 1.1;
+            } else if (Math.random() > 0.8) {
+                // 偏黄
+                r *= 1.1;
+                g *= 1.05;
+                b *= 0.9;
+            }
+            
+            colors[i * 3] = r;
+            colors[i * 3 + 1] = g;
+            colors[i * 3 + 2] = b;
+        }
+
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        starsGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        // 星星材质：使用顶点颜色，关闭衰减，让星星大小恒定
+        const starsMaterial = new THREE.PointsMaterial({
+            size: 0.35,
+            vertexColors: true,   // 使用每个顶点的颜色
+            sizeAttenuation: false, // 不随距离减小大小，更像星空背景
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending // 叠加混合，让星星更亮
+        });
+
+        const stars = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(stars);
+
+        // 额外添加一层更远更暗的小星星，增加深度感
+        const starsGeometry2 = new THREE.BufferGeometry();
+        const starsCount2 = 1500;
+        const positions2 = new Float32Array(starsCount2 * 3);
+        for (let i = 0; i < starsCount2; i++) {
+            const radius = 300 + Math.random() * 200;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            positions2[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions2[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            positions2[i * 3 + 2] = radius * Math.cos(phi);
+        }
+        starsGeometry2.setAttribute('position', new THREE.BufferAttribute(positions2, 3));
+        const starsMaterial2 = new THREE.PointsMaterial({
+            size: 0.2,
+            color: 0xaaccff,
+            sizeAttenuation: false,
+            blending: THREE.AdditiveBlending,
+            opacity: 0.5
+        });
+        const stars2 = new THREE.Points(starsGeometry2, starsMaterial2);
+        scene.add(stars2);
+
+        // --- 可选：添加一个非常淡的光晕效果 (用简单的环境雾) 让星星和地球融合更好 ---
+        scene.fog = new THREE.FogExp2(0x050510, 0.0015);
+
+        // --- 动画循环 ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 更新控制器 (必须，尤其启用阻尼时)
+            controls.update();
+
+            // 可以稍微让星星缓慢旋转以增加动感？为了保持静态背景，不旋转星星，或者极慢旋转
+            // 这里选择不旋转星星，保持背景稳定
+
+            // 地球也可以有微小的自转？但为了不影响用户控制，禁用自转
+            // 如果想要极慢的自转，可以取消下面注释，但会与用户拖拽叠加，体验不佳，所以注释掉
+            // earth.rotation.y += 0.0001;
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // --- 窗口尺寸自适应 ---
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 控制台提示
+        console.log('地球仪已加载，使用鼠标拖拽旋转查看。');
+    </script>
+</body>
+</html>
